@@ -1,19 +1,39 @@
 import pandas as pd
 import joblib
+import yaml
+import sys
 
 def prediction():
 
+    try:
+
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+
+    except FileNotFoundError:
+        print("---------- config.yaml file not found ----------")
+        sys.exit(1)
+
+
+    path_processed = config["paths"]["processed"]
+    path_model = config["paths"]["model"]
+    path_fiber_prob = config["paths"]["fiber_prob"]
+
     # ---------- Opening non fiber clients data frame ----------
 
-    path_processed = "../data/processed/"
-
-    df = pd.read_csv(f"{path_processed}nf_clients.csv")
+    df = pd.read_csv(path_processed + "nf_clients.csv")
 
     # ---------- Loading model and creating "Migration Probability column" ----------
 
     print("---------- Loading model and predicting ----------")
 
-    model = joblib.load('../models/random_forest_final.pkl')
+    try:
+        model = joblib.load(path_model)
+
+    except FileNotFoundError:
+        print("---------- You need to have a model to make the predictions ----------")
+        print("Try running preprocess.py -> train.py first in order to have the model")
+        sys.exit(1)
 
     df['Migration Probability'] = model.predict_proba(df.drop(columns="CustomerID"))[:, 1]
 
@@ -28,9 +48,9 @@ def prediction():
         ascending=False
     )
 
-    ranking_marketing.to_csv("../data/processed/ranking_fiber_prob.csv", index=False)
+    ranking_marketing.to_csv(path_fiber_prob , index=False)
 
-    print("---------- Prediction ranking created sucessfully at ../data/processed/ranking_fiber_prob.csv ----------")
+    print(f"---------- Prediction ranking created sucessfully at "+ path_fiber_prob + " ----------")
 
 if __name__ == "__main__":
     prediction()

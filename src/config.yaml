@@ -1,0 +1,23 @@
+paths:
+  raw: "../data/raw/Telco_data.csv"
+  processed: "../data/processed/"
+  nofiber: "../data/processed/nf_clients.csv"
+  fiber_prob: "../data/processed/fiber_prob.csv"
+  model: "../models/random_forest_final.pkl"
+
+
+features:
+  optimized_columns:
+    - "CLTV"
+    - "Tenure Months"
+    - "Total Extra Services"
+    - "Payment Method"
+    - "Multiple Lines"
+    - "Contract"
+    - "Streaming TV"
+    - "Phone Service"
+    - "Paperless Billing"
+    - "Streaming Movies"
+    - "Senior Citizen"
+    - "Tech Support"
+    - "Online Security"

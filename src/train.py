@@ -1,6 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import joblib
+import yaml
+import sys
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import  GridSearchCV
@@ -9,32 +11,40 @@ from sklearn.metrics import classification_report, accuracy_score
 
 def model_training():
 
+    try:
+
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+
+    except FileNotFoundError:
+        print("---------- config.yaml file not found ----------")
+        sys.exit(1)
+
+    path_processed = config["paths"]["processed"]
+    path_model = config["paths"]["model"]
+
+
+    optimal_columns = config["features"]["optimized_columns"]
+    if len(optimal_columns) != 13:
+        print("---------- You need to have exactly 13 columns for optimal model ----------")
+
     # ---------- Opening all the training data frames ----------
 
-    path_processed = "../data/processed/"
-    X_train = pd.read_csv(f"{path_processed}X_train.csv")
-    y_train = pd.read_csv(f"{path_processed}y_train.csv").squeeze("columns")
-    X_test = pd.read_csv(f"{path_processed}X_test.csv")
-    y_test = pd.read_csv(f"{path_processed}y_test.csv").squeeze("columns")
+    try:
+
+        X_train = pd.read_csv(path_processed + "X_train.csv")
+        y_train = pd.read_csv(path_processed + "y_train.csv").squeeze("columns")
+        X_test = pd.read_csv(path_processed + "X_test.csv")
+        y_test = pd.read_csv(path_processed + "y_test.csv").squeeze("columns")
+
+    except:
+        print("---------- You have to preprocess raw data in order to train the model ----------")
+        sys.exit(1)
 
     # ---------- Optimizing the data frame based on SFS and RFE ----------
 
-    rfc_optimal_columns = ['CLTV',
-     'Tenure Months',
-     'Total Extra Services',
-     'Payment Method',
-     'Multiple Lines',
-     'Contract',
-     'Streaming TV',
-     'Phone Service',
-     'Paperless Billing',
-     'Streaming Movies',
-     'Senior Citizen',
-     'Tech Support',
-     'Online Security']
-
-    X_train_opt = X_train[rfc_optimal_columns]
-    X_test_opt = X_test[rfc_optimal_columns]
+    X_train_opt = X_train[optimal_columns]
+    X_test_opt = X_test[optimal_columns]
 
     # ---------- Training the model ----------
 
@@ -74,7 +84,7 @@ def model_training():
 
     # ---------- Exporting model as .pkl ----------
 
-    joblib.dump(model, '../models/random_forest_final.pkl')
+    joblib.dump(model, path_model)
 
     print("---------- Model file created with success ----------")
 
