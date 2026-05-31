@@ -1,0 +1,3 @@
+logs/*.log
+models/*.pkl
+src/__pycache__

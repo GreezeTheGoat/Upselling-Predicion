@@ -2,8 +2,14 @@ import pandas as pd
 import joblib
 import yaml
 import sys
+import logging
+from pathlib import Path
 
 def prediction():
+    """
+    Use already trained model to predict possible clients,
+    create best possible clients ranking data frame
+    """ 
 
     try:
 
@@ -11,37 +17,37 @@ def prediction():
             config = yaml.safe_load(file)
 
     except FileNotFoundError:
-        print("---------- config.yaml file not found ----------")
+        logging.error("---------- config.yaml file not found ----------")
         sys.exit(1)
 
 
-    path_processed = config["paths"]["processed"]
-    path_model = config["paths"]["model"]
-    path_fiber_prob = config["paths"]["fiber_prob"]
+    path_model = Path(config["paths"]["model"])
+    path_nofiber = Path(config["paths"]["nofiber"])
+    path_fiber_prob = Path(config["paths"]["fiber_prob"])
 
     # ---------- Opening non fiber clients data frame ----------
 
-    df = pd.read_csv(path_processed + "nf_clients.csv")
+    df = pd.read_csv(path_nofiber)
 
     # ---------- Loading model and creating "Migration Probability column" ----------
 
-    print("---------- Loading model and predicting ----------")
+    logging.info("---------- Loading model and predicting ----------")
 
     try:
         model = joblib.load(path_model)
 
     except FileNotFoundError:
-        print("---------- You need to have a model to make the predictions ----------")
-        print("Try running preprocess.py -> train.py first in order to have the model")
+        logging.error("---------- You need to have a model to make the predictions ----------")
+        logging.error("Try running preprocess.py -> train.py first in order to have the model")
         sys.exit(1)
 
     df['Migration Probability'] = model.predict_proba(df.drop(columns="CustomerID"))[:, 1]
 
-    print("---------- Prediction concluded ----------")
+    logging.info("---------- Prediction concluded ----------")
 
     # ---------- Creating target data frame ----------
 
-    print("---------- Creating data frame ----------")
+    logging.info("---------- Creating data frame ----------")
 
     ranking_marketing = df[["CustomerID", "Migration Probability"]].sort_values(
         by="Migration Probability", 
@@ -50,7 +56,13 @@ def prediction():
 
     ranking_marketing.to_csv(path_fiber_prob , index=False)
 
-    print(f"---------- Prediction ranking created sucessfully at "+ path_fiber_prob + " ----------")
+    logging.info(f"---------- Prediction ranking created sucessfully at {path_fiber_prob} ----------")
 
 if __name__ == "__main__":
+    logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            datefmt='%H:%M:%S'
+        )
+
     prediction()
