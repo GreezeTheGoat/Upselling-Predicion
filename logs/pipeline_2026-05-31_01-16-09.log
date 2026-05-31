@@ -1,0 +1,22 @@
+01:16:09 - INFO - ---------- Executing main script ----------
+01:16:09 - INFO - ---------- Processed raw data with sucsess ----------
+01:16:09 - INFO - ---------- Training Model ----------
+01:16:09 - INFO - ---------- Model trained with success ----------
+01:16:09 - INFO - ---------- Accuracy score -----------
+01:16:09 - INFO - 80.19%
+
+01:16:09 - INFO - ---------- Classification report ----------
+01:16:09 - INFO -               precision    recall  f1-score   support
+
+           0       0.84      0.86      0.85       675
+           1       0.73      0.69      0.71       360
+
+    accuracy                           0.80      1035
+   macro avg       0.78      0.78      0.78      1035
+weighted avg       0.80      0.80      0.80      1035
+
+01:16:09 - INFO - ---------- Model file created with success ----------
+01:16:09 - INFO - ---------- Loading model and predicting ----------
+01:16:10 - INFO - ---------- Prediction concluded ----------
+01:16:10 - INFO - ---------- Creating data frame ----------
+01:16:10 - INFO - ---------- Prediction ranking created sucessfully at ../data/processed/fiber_prob.csv ----------
