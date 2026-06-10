@@ -1,84 +1,102 @@
+from useful_funcs import test_model, get_shap
 import pandas as pd
-import joblib
 import yaml
 import sys
-import logging
+import lightgbm as lgb
+import joblib
 from pathlib import Path
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
 
-def model_training():
-    """
-    Gather all processed data, train optimized RFC model based on that data,
-    create .pkl model file
+# ========== Opening config file ==========
 
-    """
+path_yaml = Path("../src/config.yaml")
+try:
 
-    try:
+    with open(path_yaml, "r") as file:
+        config = yaml.safe_load(file)
 
-        with open("config.yaml", "r") as file:
-            config = yaml.safe_load(file)
+except FileNotFoundError:
+    print("Config file not found")
+    sys.exit(1)
 
-    except FileNotFoundError:
-        logging.error("---------- config.yaml file not found ----------")
-        sys.exit(1)
+# ========== opening dataframe and setting paths ==========
 
-    path_processed = Path(config["paths"]["processed"])
-    path_model = Path(config["paths"]["model"])
+path_preprocessed = Path("../data/processed/telco_preprocessed.csv")
+df = pd.read_csv(path_preprocessed, index_col="customer_id")
 
+pd.set_option('future.no_silent_downcasting', True)
 
-    optimal_columns = config["features"]["optimized_columns"]
-    if len(optimal_columns) != 13:
-        logging.info("---------- You need to have exactly 13 columns for optimal model ----------")
+# ========== Spliting dataframe ==========
 
-    # ---------- Opening all the training data frames ----------
+X = df.drop(columns = ["is_fiber"])
+y = df["is_fiber"]
 
-    try:
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+)
 
-        X_train = pd.read_csv(path_processed.joinpath("X_train.csv"))
-        y_train = pd.read_csv(path_processed.joinpath("y_train.csv")).squeeze("columns")
-        X_test = pd.read_csv(path_processed.joinpath("X_test.csv"))
-        y_test = pd.read_csv(path_processed.joinpath("y_test.csv")).squeeze("columns")
+# ========== Using ColumnTransformer on df ==========
 
-    except:
-        logging.error("---------- You have to preprocess raw data in order to train the model ----------")
-        sys.exit(1)
+num_features = config["features"]["numerical_features"]
+ord_features = [config["features"]["ordinal_categoricals"][0]]
+nom_features = config["features"]["nominal_categoricals"]
+ord_feat_categ = [config["features"]["ordinal_orders"][0]]
 
-    # ---------- Optimizing the data frame based on SFS and RFE ----------
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", StandardScaler(), num_features),
+        ("ord", OrdinalEncoder(categories=ord_feat_categ), ord_features),
+         ("nom", OneHotEncoder(drop="first", handle_unknown="ignore", sparse_output=False), nom_features), 
+    ],
+    remainder="drop"
+)
 
-    X_train_opt = X_train[optimal_columns]
-    X_test_opt = X_test[optimal_columns]
+preprocessor.set_output(transform="pandas")
 
-    # ---------- Training the model ----------
+X_train = preprocessor.fit_transform(X_train)
+X_test = preprocessor.transform(X_test)
 
-    logging.info("---------- Training Model ----------")
+# ========== Training default model to get best columns and for future comparsion ==========
 
-    model = RandomForestClassifier(random_state=42, max_depth=12, max_features= "sqrt", min_samples_split= 10, n_estimators=200)
+default_model = lgb.LGBMClassifier(verbose=-1)
+default_model.fit(X_train, y_train)
+col_imp_ranking = get_shap(default_model, X_train)
 
-    model.fit(X_train_opt, y_train)
-    
-    logging.info("---------- Model trained with success ----------")
+n_features = config["features"]["n_features_to_select"]
+X_filtered = X_train[col_imp_ranking[:n_features]]
 
-    # ---------- Diagnosing the model ----------
+# ========== Training optimized model using optun ==========
 
-    prediction = model.predict(X_test_opt)
-    logging.info("---------- Accuracy score -----------")
+best_params = {'learning_rate': 0.05898602410432694,
+'num_leaves': 20,
+'min_child_samples': 65,
+'colsample_bytree': 0.6682096494749166}
 
-    logging.info(f"{accuracy_score(y_test, prediction) * 100:.2f}%\n")
+optimized_model = lgb.LGBMClassifier(
+**best_params
+)
 
-    logging.info("---------- Classification report ----------")
-    logging.info(classification_report(y_test, prediction))
+optimized_model.fit(X_train[col_imp_ranking[:n_features]], y_train)
 
-    # ---------- Exporting model as .pkl ----------
+# ========== Testing and comparing the optimized model ==========
 
-    joblib.dump(model, path_model)
+optimized_results = test_model(
+        optimized_model,
+        X_test[col_imp_ranking[:n_features]],
+        y_test,
+        "Optimized Model"
+        )
 
-    logging.info("---------- Model file created with success ----------")
+default_results = test_model(default_model, X_test, y_test, "Default Model")
 
-if __name__ == "__main__":
-    logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%H:%M:%S'
-    ) 
-    model_training()
+df_final = pd.concat([default_results, optimized_results], axis=1 )
+
+print(df_final)
+
+# ========== Dumping the model ==========
+
+path_model = Path("../models/fiber.joblib")
+
+joblib.dump(optimized_model, path_model)

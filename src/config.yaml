@@ -1,12 +1,79 @@
 paths:
+  yaml: "../src/config.yaml"
   raw: "../data/raw/Telco_data.csv"
   processed: "../data/processed/"
   nofiber: "../data/processed/nf_clients.csv"
   fiber_prob: "../data/processed/fiber_prob.csv"
   model: "../models/random_forest_final.pkl"
 
+data_standardization:
+  "Yes": "Yes"
+  "No":
+    - "No"
+    - "No internet service"
+    - "No phone service"
+  "male": "Male"
+  "female": "Female"
+  "fiber_optic": "Fiber optic"
+  "month_to_month": "Month-to-month"
+  "one_year": "One year"
+  "two_year": "Two year"
+  "electronic_check": "Electronic check"
+  "mailed_check": "Mailed check"
+  "bank_transfer": "Bank transfer (automatic)"
+  "credit_card": "Credit card (automatic)"
+  
+
+mapping:
+  cltv: "CLTV"
+  contract_type: "Contract"
+  customer_id: "CustomerID"
+  dependents: "Dependents"
+  device_protection: "Device Protection"
+  gender: "Gender"
+  internet_service: "Internet Service"
+  multiple_lines: "Multiple Lines"
+  online_backup: "Online Backup"
+  online_security: "Online Security"
+  paperless_billing: "Paperless Billing"
+  partner: "Partner"
+  payment_method: "Payment Method"
+  phone_service: "Phone Service"
+  senior_citizen: "Senior Citizen"
+  streaming_movies: "Streaming Movies"
+  streaming_tv: "Streaming TV"
+  tech_support: "Tech Support"
+  tenure_months: "Tenure Months"
 
 features:
+  n_features_to_select: 18
+
+  numerical_features:
+    - "tenure_months"
+    - "cltv"
+
+  ordinal_categoricals:
+    - "contract_type"
+
+  nominal_categoricals:
+    - "gender"
+    - "senior_citizen"
+    - "partner"
+    - "dependents"
+    - "phone_service"
+    - "multiple_lines"
+    - "online_security"
+    - "online_backup"
+    - "device_protection"
+    - "tech_support"
+    - "streaming_tv"
+    - "streaming_movies"
+    - "paperless_billing"
+    - "payment_method"
+  ordinal_orders:
+    - ["month_to_month", "one_year", "two_year"]
+
+
   optimized_columns:
     - "CLTV"
     - "Tenure Months"
@@ -39,13 +106,13 @@ features:
     - "Online Security"
 
   extra_services:
-    - "Phone Service"
-    - "Multiple Lines"
-    - "Online Security"
-    - "Online Backup"
-    - "Device Protection"
-    - "Streaming TV"
-    - "Streaming Movies"
+    - "phone_service"
+    - "multiple_lines"
+    - "online_security"
+    - "online_backup"
+    - "device_protection"
+    - "streaming_tv"
+    - "streaming_movies"
 
   useless_columns:
     - "Count"
