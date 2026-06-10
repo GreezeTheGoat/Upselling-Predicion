@@ -1,4 +1,4 @@
-from useful_funcs import test_model, get_shap
+from useful_funcs import test_model, filter_column
 import pandas as pd
 import yaml
 import sys
@@ -6,8 +6,9 @@ import lightgbm as lgb
 import joblib
 from pathlib import Path
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler, FunctionTransformer
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
 
 # ========== Opening config file ==========
 
@@ -37,12 +38,14 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=42
 )
 
-# ========== Using ColumnTransformer on df ==========
+# ========== Creating preprocessor ==========
 
 num_features = config["features"]["numerical_features"]
 ord_features = [config["features"]["ordinal_categoricals"][0]]
 nom_features = config["features"]["nominal_categoricals"]
 ord_feat_categ = [config["features"]["ordinal_orders"][0]]
+col_imp_ranking = config["features"]["columns_ord_shap"]
+
 
 preprocessor = ColumnTransformer(
     transformers=[
@@ -53,21 +56,13 @@ preprocessor = ColumnTransformer(
     remainder="drop"
 )
 
+
 preprocessor.set_output(transform="pandas")
 
-X_train = preprocessor.fit_transform(X_train)
-X_test = preprocessor.transform(X_test)
-
-# ========== Training default model to get best columns and for future comparsion ==========
-
-default_model = lgb.LGBMClassifier(verbose=-1)
-default_model.fit(X_train, y_train)
-col_imp_ranking = get_shap(default_model, X_train)
-
 n_features = config["features"]["n_features_to_select"]
-X_filtered = X_train[col_imp_ranking[:n_features]]
+columns_to_keep = col_imp_ranking[:n_features]
 
-# ========== Training optimized model using optun ==========
+# ========== Creating optimized model using parameter from optuna ==========
 
 best_params = {'learning_rate': 0.05898602410432694,
 'num_leaves': 20,
@@ -75,28 +70,43 @@ best_params = {'learning_rate': 0.05898602410432694,
 'colsample_bytree': 0.6682096494749166}
 
 optimized_model = lgb.LGBMClassifier(
-**best_params
+**best_params,
+    verbose=-1
 )
 
-optimized_model.fit(X_train[col_imp_ranking[:n_features]], y_train)
+# ========== Creating optimized pipeline and default too for comparsion ==========
+
+optimized_pipeline = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("feature_selector", FunctionTransformer(filter_column, kw_args={"columns": columns_to_keep})),
+    ("optimized_model", optimized_model)
+]
+)
+optimized_pipeline.fit(X_train, y_train)
+
+default_pipeline = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("default_model", lgb.LGBMClassifier(verbose=-1))
+])
+default_pipeline.fit(X_train, y_train)
 
 # ========== Testing and comparing the optimized model ==========
 
 optimized_results = test_model(
-        optimized_model,
-        X_test[col_imp_ranking[:n_features]],
+        optimized_pipeline,
+        X_test,
         y_test,
         "Optimized Model"
         )
 
-default_results = test_model(default_model, X_test, y_test, "Default Model")
+default_results = test_model(default_pipeline, X_test, y_test, "Default Model")
 
 df_final = pd.concat([default_results, optimized_results], axis=1 )
 
-print(df_final)
-
 # ========== Dumping the model ==========
 
-path_model = Path("../models/fiber.joblib")
+path_model = config["paths"]["model_fiber"]
 
-joblib.dump(optimized_model, path_model)
+joblib.dump(optimized_pipeline, path_model)
+
+print(df_final)

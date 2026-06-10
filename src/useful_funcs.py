@@ -43,3 +43,5 @@ def get_shap(model, X: pd.DataFrame, plot: bool =False) -> list:
 
     return col_ranking
 
+def filter_column(X, columns):
+    return X[columns]

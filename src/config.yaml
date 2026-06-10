@@ -1,10 +1,12 @@
 paths:
   yaml: "../src/config.yaml"
   raw: "../data/raw/Telco_data.csv"
-  processed: "../data/processed/"
+  processed: "../data/processed/telco_preprocessed.csv"
   nofiber: "../data/processed/nf_clients.csv"
   fiber_prob: "../data/processed/fiber_prob.csv"
-  model: "../models/random_forest_final.pkl"
+  model_fiber: "../models/fiber.pkl"
+  preprocessor: "../models/preprocessor.pkl"
+  predictions: "../data/predictions/"
 
 data_standardization:
   "Yes": "Yes"
@@ -74,36 +76,25 @@ features:
     - ["month_to_month", "one_year", "two_year"]
 
 
-  optimized_columns:
-    - "CLTV"
-    - "Tenure Months"
-    - "Total Extra Services"
-    - "Payment Method"
-    - "Multiple Lines"
-    - "Contract"
-    - "Streaming TV"
-    - "Phone Service"
-    - "Paperless Billing"
-    - "Streaming Movies"
-    - "Senior Citizen"
-    - "Tech Support"
-    - "Online Security"
-
-  nofiber_columns:
-    - "CustomerID"
-    - "CLTV"
-    - "Tenure Months"
-    - "Total Extra Services"
-    - "Payment Method"
-    - "Multiple Lines"
-    - "Contract"
-    - "Streaming TV"
-    - "Phone Service"
-    - "Paperless Billing"
-    - "Streaming Movies"
-    - "Senior Citizen"
-    - "Tech Support"
-    - "Online Security"
+  columns_ord_shap: ['ord__contract_type',
+ 'nom__phone_service_yes',
+ 'num__tenure_months',
+ 'nom__multiple_lines_yes',
+ 'nom__streaming_tv_yes',
+ 'nom__streaming_movies_yes',
+ 'nom__paperless_billing_yes',
+ 'nom__payment_method_electronic_check',
+ 'nom__payment_method_mailed_check',
+ 'nom__device_protection_yes',
+ 'nom__senior_citizen_yes',
+ 'num__cltv',
+ 'nom__tech_support_yes',
+ 'nom__online_backup_yes',
+ 'nom__online_security_yes',
+ 'nom__dependents_yes',
+ 'nom__partner_yes',
+ 'nom__gender_male',
+ 'nom__payment_method_credit_card']
 
   extra_services:
     - "phone_service"

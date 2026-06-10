@@ -72,4 +72,4 @@ df = df.drop(columns=["internet_service"])
 
 df.set_index("customer_id", inplace=True)
 
-df.to_csv(path_processed.joinpath("telco_preprocessed.csv"), index=True)
+df.to_csv(path_processed, index=True)
