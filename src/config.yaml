@@ -4,8 +4,7 @@ paths:
   processed: "../data/processed/telco_preprocessed.csv"
   nofiber: "../data/processed/nf_clients.csv"
   fiber_prob: "../data/processed/fiber_prob.csv"
-  model_fiber: "../models/fiber.pkl"
-  preprocessor: "../models/preprocessor.pkl"
+  models: "../models/"
   predictions: "../data/predictions/"
 
 data_standardization:
@@ -72,6 +71,8 @@ features:
     - "streaming_movies"
     - "paperless_billing"
     - "payment_method"
+    - "is_fiber"
+
   ordinal_orders:
     - ["month_to_month", "one_year", "two_year"]
 

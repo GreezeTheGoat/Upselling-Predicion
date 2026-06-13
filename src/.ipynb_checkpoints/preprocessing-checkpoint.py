@@ -1,11 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import pandas as pd
 from pathlib import Path
 import yaml
 import sys
-
 
 # ========== Opening config file ==========
 
@@ -19,7 +15,6 @@ except FileNotFoundError:
     print("Config file not found")
     sys.exit(1)
 
-
 # ========== Creating path variables and opening dataset ==========
 
 path_raw = Path(config["paths"]["raw"])
@@ -31,7 +26,6 @@ extra_services_columns = config["features"]["extra_services"]
 df = pd.read_csv(path_raw)
 
 pd.set_option('future.no_silent_downcasting', True) # Boilerplate so i dont get stupid logs
-
 
 # ========== Removing Churn clients and useless columns ==========
 
@@ -71,7 +65,7 @@ df = df.drop(columns=["internet_service"])
 for col in config["features"]["nominal_categoricals"]:
     df[col] = df[col].astype(str).str.lower().str.strip()
 
-df = df.replace({"yes":1, "no":0})
+df["Total Extra Services"] = df[extra_services_columns].eq("yes").sum(axis = 1)
 
 
 # ========== Dumping the dataframe into a csv file ==========
@@ -79,10 +73,3 @@ df = df.replace({"yes":1, "no":0})
 df.set_index("customer_id", inplace=True)
 
 df.to_csv(path_processed, index=True)
-
-
-df
-
-
-
-
